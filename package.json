@@ -1,0 +1,30 @@
+{
+  "name": "musiccord",
+  "version": "1.0.0",
+  "description": "Show what you are listening to on Apple Music in Discord Rich Presence on macOS (Spotify-like)",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "musiccord": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node bin/cli.js",
+    "live": "node bin/cli.js --live",
+    "service:start": "node bin/cli.js --start",
+    "service:stop": "node bin/cli.js --stop",
+    "service:status": "node bin/cli.js --status"
+  },
+  "keywords": [
+    "apple-music",
+    "discord",
+    "rich-presence",
+    "spotify-like",
+    "macos",
+    "musiccord"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@xhayper/discord-rpc": "^1.5.1"
+  }
+}
