@@ -58,9 +58,11 @@ export class DiscordPresenceManager {
       const endMs = track.duration > 0 ? startMs + Math.floor(track.duration * 1000) : undefined;
 
       const activity = {
+        name: "Apple Music",
         details: track.title.substring(0, 127),
         state: `by ${track.artist}`.substring(0, 127),
-        type: 2, // 2: Listening (Spotify gibi)
+        type: 2, // 2: Listening to (Spotify gibi)
+        status_display_type: 1, // Şarkı ve sanatçıyı üye listesinde öne çıkar
         startTimestamp: startMs,
         endTimestamp: endMs,
         largeImageKey: metadata?.artworkUrl || "applemusic",
@@ -69,7 +71,7 @@ export class DiscordPresenceManager {
         smallImageText: "Apple Music"
       };
 
-      if (this.config.showButton && metadata?.trackUrl) {
+      if (this.config.showButton && metadata?.trackUrl && metadata.trackUrl.startsWith("http")) {
         activity.buttons = [
           {
             label: "Apple Music'te Dinle",
@@ -81,7 +83,6 @@ export class DiscordPresenceManager {
       await this.client.user.setActivity(activity);
       this.lastActivityId = track.id;
     } catch (err) {
-      // Bağlantı koptuysa yeniden bağlanmak için hazırla
       this.isConnected = false;
       this.client = null;
       this.lastActivityId = null;
@@ -94,7 +95,7 @@ export class DiscordPresenceManager {
       await this.client.user.clearActivity();
       this.lastActivityId = null;
     } catch {
-      // Hata durumunda sessiz kal
+      // Ignored
     }
   }
 
@@ -111,4 +112,3 @@ export class DiscordPresenceManager {
     }
   }
 }
-

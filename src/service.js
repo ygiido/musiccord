@@ -130,3 +130,4 @@ export function getLogs(lines = 15) {
     return "Loglar okunamadı.";
   }
 }
+
