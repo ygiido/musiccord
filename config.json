@@ -3,6 +3,6 @@
   "checkInterval": 2000,
   "clearOnPause": true,
   "showButton": true,
-  "storefrontCountry": "TR"
+  "storefrontCountry": "TR",
+  "displayInStatus": "artist"
 }
-

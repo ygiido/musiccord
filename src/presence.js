@@ -57,12 +57,20 @@ export class DiscordPresenceManager {
       const startMs = Date.now() - Math.floor(track.position * 1000);
       const endMs = track.duration > 0 ? startMs + Math.floor(track.duration * 1000) : undefined;
 
+      // Spotify gibi:
+      // details: Şarkı adı
+      // state: Sanatçı adı (Örn: "Avenged Sevenfold")
+      // statusDisplayType: 1 -> Üye listesinde/mini profilde doğrudan SANATÇI ADI görünür!
+      // (Eğer config'de displayInStatus: "song" seçilirse 2 olur ve şarkı adı görünür)
+      const displayType = this.config.displayInStatus === "song" ? 2 : 1;
+
       const activity = {
         name: "Apple Music",
         details: track.title.substring(0, 127),
-        state: `by ${track.artist}`.substring(0, 127),
-        type: 2, // 2: Listening to (Spotify gibi)
-        status_display_type: 1, // Şarkı ve sanatçıyı üye listesinde öne çıkar
+        state: track.artist.substring(0, 127),
+        type: 2, // 2: Listening (Spotify entegrasyonuyla birebir aynı)
+        statusDisplayType: displayType, // Kütüphanenin camelCase formatı
+        status_display_type: displayType, // Ham Discord API formatı
         startTimestamp: startMs,
         endTimestamp: endMs,
         largeImageKey: metadata?.artworkUrl || "applemusic",

@@ -14,8 +14,10 @@ export const DEFAULT_CONFIG = {
   clearOnPause: true,
   // Discord'da 'Apple Music'te Dinle' butonunu göster
   showButton: true,
-  // iTunes arama ülkesi (TR veya US)
-  storefrontCountry: "TR"
+  // iTunes arama mağazası (TR veya US)
+  storefrontCountry: "TR",
+  // Mini profilde / üye listesinde ne gösterilsin: "artist" (Spotify gibi sanatçı adı) veya "song" (şarkı adı)
+  displayInStatus: "artist"
 };
 
 export function loadConfig() {
@@ -29,4 +31,3 @@ export function loadConfig() {
   }
   return { ...DEFAULT_CONFIG };
 }
-
