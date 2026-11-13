@@ -51,7 +51,8 @@ end tell
 
 export async function getMusicState() {
   try {
-    const { stdout } = await execFileAsync("osascript", ["-e", APPLESCRIPT]);
+    // 3 saniyelik timeout koruması
+    const { stdout } = await execFileAsync("osascript", ["-e", APPLESCRIPT], { timeout: 3000 });
     const trimmed = stdout.trim();
 
     if (trimmed === "NOT_RUNNING") {
@@ -90,4 +91,3 @@ export async function getMusicState() {
     return { status: "ERROR", error: err.message };
   }
 }
-

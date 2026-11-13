@@ -15,8 +15,20 @@ export class DiscordPresenceManager {
     this.isConnecting = true;
 
     try {
+      if (this.client) {
+        try {
+          await this.client.destroy();
+        } catch {}
+        this.client = null;
+      }
+
       this.client = new Client({
         clientId: this.config.clientId
+      });
+
+      // Hata dinleyicileri (EPIPE vb. çökmeleri önlemek için)
+      this.client.on("error", (err) => {
+        this.handleDisconnect(err?.message || "Discord RPC error");
       });
 
       this.client.on("ready", () => {
@@ -28,22 +40,33 @@ export class DiscordPresenceManager {
       });
 
       this.client.on("disconnected", () => {
-        this.isConnected = false;
-        this.isConnecting = false;
-        this.lastActivityId = null;
-        if (this.onStatusChange) {
-          this.onStatusChange({ connected: false });
-        }
+        this.handleDisconnect("Discord bağlantısı koptu");
       });
 
-      await this.client.login();
+      // Login için 5 saniyelik timeout koruması
+      const loginPromise = this.client.login();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Discord login timeout (5s)")), 5000)
+      );
+
+      await Promise.race([loginPromise, timeoutPromise]);
     } catch (err) {
-      this.isConnected = false;
-      this.isConnecting = false;
+      this.handleDisconnect(err?.message || "Login başarısız");
+    }
+  }
+
+  handleDisconnect(errorReason = "") {
+    this.isConnected = false;
+    this.isConnecting = false;
+    this.lastActivityId = null;
+    if (this.client) {
+      try {
+        this.client.destroy();
+      } catch {}
       this.client = null;
-      if (this.onStatusChange) {
-        this.onStatusChange({ connected: false, error: err.message });
-      }
+    }
+    if (this.onStatusChange) {
+      this.onStatusChange({ connected: false, error: errorReason });
     }
   }
 
@@ -56,21 +79,15 @@ export class DiscordPresenceManager {
     try {
       const startMs = Date.now() - Math.floor(track.position * 1000);
       const endMs = track.duration > 0 ? startMs + Math.floor(track.duration * 1000) : undefined;
-
-      // Spotify gibi:
-      // details: Şarkı adı
-      // state: Sanatçı adı (Örn: "Avenged Sevenfold")
-      // statusDisplayType: 1 -> Üye listesinde/mini profilde doğrudan SANATÇI ADI görünür!
-      // (Eğer config'de displayInStatus: "song" seçilirse 2 olur ve şarkı adı görünür)
       const displayType = this.config.displayInStatus === "song" ? 2 : 1;
 
       const activity = {
         name: "Apple Music",
-        details: track.title.substring(0, 127),
-        state: track.artist.substring(0, 127),
-        type: 2, // 2: Listening (Spotify entegrasyonuyla birebir aynı)
-        statusDisplayType: displayType, // Kütüphanenin camelCase formatı
-        status_display_type: displayType, // Ham Discord API formatı
+        details: (track.title || "Unknown").substring(0, 127),
+        state: (track.artist || "Unknown").substring(0, 127),
+        type: 2, // 2: Listening (Spotify gibi)
+        statusDisplayType: displayType,
+        status_display_type: displayType,
         startTimestamp: startMs,
         endTimestamp: endMs,
         largeImageKey: metadata?.artworkUrl || "applemusic",
@@ -88,22 +105,30 @@ export class DiscordPresenceManager {
         ];
       }
 
-      await this.client.user.setActivity(activity);
+      // setActivity için 3 saniyelik timeout koruması (asılı kalmayı engeller)
+      const setPromise = this.client.user.setActivity(activity);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("setActivity timeout")), 3000)
+      );
+
+      await Promise.race([setPromise, timeoutPromise]);
       this.lastActivityId = track.id;
     } catch (err) {
-      this.isConnected = false;
-      this.client = null;
-      this.lastActivityId = null;
+      this.handleDisconnect(err?.message);
     }
   }
 
   async clearActivity() {
     if (!this.isConnected || !this.client?.user) return;
     try {
-      await this.client.user.clearActivity();
+      const clearPromise = this.client.user.clearActivity();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("clearActivity timeout")), 2000)
+      );
+      await Promise.race([clearPromise, timeoutPromise]);
       this.lastActivityId = null;
     } catch {
-      // Ignored
+      this.handleDisconnect("clearActivity failed");
     }
   }
 
@@ -112,11 +137,10 @@ export class DiscordPresenceManager {
       try {
         await this.clearActivity();
         await this.client.destroy();
-      } catch {
-        // Ignored
-      }
+      } catch {}
       this.client = null;
       this.isConnected = false;
+      this.isConnecting = false;
     }
   }
 }

@@ -88,7 +88,7 @@ end tell
 `;
 
   try {
-    const { stdout } = await execFileAsync("osascript", ["-e", script]);
+    const { stdout } = await execFileAsync("osascript", ["-e", script], { timeout: 3000 });
     if (stdout.trim() === "SUCCESS" && fs.existsSync("/tmp/musiccord_cover.jpg")) {
       return "/tmp/musiccord_cover.jpg";
     }

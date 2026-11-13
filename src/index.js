@@ -4,6 +4,19 @@ import { fetchTrackMetadata } from "./itunes.js";
 import { DiscordPresenceManager } from "./presence.js";
 import { TerminalUI } from "./ui.js";
 
+// EPIPE ve beklenmedik IPC hatalarını yakala ve sürecin çökmesini engelle
+process.on("uncaughtException", (err) => {
+  // EPIPE veya bağlantı hatalarını yut ve güvenle devam et
+  if (err?.code === "EPIPE" || err?.message?.includes("EPIPE")) {
+    return;
+  }
+  console.error("MusicCord Hata (Yutuldu):", err?.message || err);
+});
+
+process.on("unhandledRejection", (reason) => {
+  // Sessizce yut
+});
+
 async function main() {
   const config = loadConfig();
   const ui = new TerminalUI();
@@ -21,6 +34,7 @@ async function main() {
 
   let currentTrackMeta = null;
   let isUpdating = false;
+  let lastTickTime = Date.now();
 
   presence.onStatusChange = (status) => {
     currentDiscordStatus = {
@@ -39,8 +53,17 @@ async function main() {
   presence.connect();
 
   async function tick() {
-    if (isUpdating) return;
+    // Watchdog: Eğer isUpdating 8 saniyeden uzun süredir kilitliyse kilidi aç
+    if (isUpdating) {
+      if (Date.now() - lastTickTime > 8000) {
+        isUpdating = false;
+      } else {
+        return;
+      }
+    }
+
     isUpdating = true;
+    lastTickTime = Date.now();
 
     try {
       // 1. Discord bağlantısı kopmuşsa yeniden dene
@@ -94,7 +117,7 @@ async function main() {
     clearInterval(timer);
     ui.clear();
     process.stdout.write("\x1b[?25h"); // Cursor'ı aç
-    console.log("Apple Music Discord Presence kapatılıyor...");
+    console.log("MusicCord kapatılıyor...");
     await presence.destroy();
     process.exit(0);
   };
@@ -107,4 +130,3 @@ main().catch((err) => {
   console.error("Uygulama hatası:", err);
   process.exit(1);
 });
-
